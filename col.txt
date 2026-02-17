@@ -1,0 +1,4 @@
+These are the column names.
+
+Company Name	Date of Visit	Role	Category	CTC	   Eligibility Percentage(10th,12th,PG,UG,Diplomo) Student Applied	Student Selected
+	

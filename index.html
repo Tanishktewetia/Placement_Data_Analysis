@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Analysis Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #2c3e50;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: white;
+            cursor: pointer;
+            color: #333;
+            min-width: 150px;
+        }
+
+        select:hover {
+            border-color: #3498db;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background-color: #ecf0f1;
+            padding: 15px 20px;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #2c3e50;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        thead {
+            background-color: #34495e;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tbody tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        .loading {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px;
+            font-size: 16px;
+        }
+
+        .error {
+            background-color: #fadbd8;
+            color: #c0392b;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #c0392b;
+        }
+
+        .info-text {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .filters-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+            border: 1px solid #ecf0f1;
+        }
+
+        .filters-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .filter-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-item label {
+            color: #555;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .filter-item input,
+        .filter-item select {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            color: #333;
+        }
+
+        .filter-item input:focus,
+        .filter-item select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 4px rgba(52, 152, 219, 0.2);
+        }
+
+        .ctc-range-display {
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .sort-section {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .sort-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .sort-item label {
+            color: #555;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .sort-item select {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            color: #333;
+            min-width: 200px;
+        }
+
+        .sort-item select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 4px rgba(52, 152, 219, 0.2);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-apply {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-apply:hover {
+            background-color: #229954;
+        }
+
+        .btn-reset {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background-color: #7f8c8d;
+        }
+
+        .results-info {
+            color: #555;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            th, td {
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .stat-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Placement Analysis Dashboard</h1>
+            
+            <div class="controls">
+                <label for="yearSelect">Select Year:</label>
+                <select id="yearSelect">
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                </select>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Total Companies</div>
+                    <div class="stat-value" id="totalCompanies">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Students Applied</div>
+                    <div class="stat-value" id="totalApplied">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Students Selected</div>
+                    <div class="stat-value" id="totalSelected">-</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Selection Rate</div>
+                    <div class="stat-value" id="selectionRate">-</div>
+                </div>
+            </div>
+
+            <p class="info-text" id="recordCount"></p>
+        </div>
+
+        <!-- Filters and Sort Section -->
+        <div class="filters-section">
+            <div class="filters-title">🔍 Filters & Sorting</div>
+            
+            <div class="filter-group">
+                <div class="filter-item">
+                    <label for="criteriaFilter">Eligibility Percentage (%):</label>
+                    <input type="number" id="criteriaFilter" placeholder="Min percentage (e.g., 60)" min="0" max="100">
+                </div>
+
+                <div class="filter-item">
+                    <label for="ctcSlider">CTC Range (LPA):</label>
+                    <input type="range" id="ctcSlider" min="0" max="100" value="100">
+                    <div class="ctc-range-display">
+                        <span>Min: <strong id="ctcMin">0</strong> LPA</span>
+                        <span>Max: <strong id="ctcMax">100</strong> LPA</span>
+                    </div>
+                </div>
+
+                <div class="filter-item">
+                    <label for="categoryFilter">Category:</label>
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="companyFilter">Company:</label>
+                    <select id="companyFilter">
+                        <option value="">All Companies</option>
+                    </select>
+                </div>
+
+                <div class="filter-item">
+                    <label for="roleFilter">Role:</label>
+                    <select id="roleFilter">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid #ecf0f1; padding-top: 15px;">
+                <div class="filters-title">Sort By:</div>
+                <div class="sort-section">
+                    <div class="sort-item">
+                        <label for="sortBy">Sort Option:</label>
+                        <select id="sortBy">
+                            <option value="">No Sorting</option>
+                            <option value="ctc-high">CTC (High to Low)</option>
+                            <option value="ctc-low">CTC (Low to High)</option>
+                            <option value="placed-high">Students Placed (High to Low)</option>
+                            <option value="placed-low">Students Placed (Low to High)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button class="btn-apply" id="applyBtn">Apply Filters</button>
+                        <button class="btn-reset" id="resetBtn">Reset All</button>
+                    </div>
+                </div>
+
+                <div class="results-info" id="resultsInfo"></div>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <div id="loading" class="loading">Loading data...</div>
+            <table id="dataTable" style="display: none;">
+                <thead>
+                    <tr id="headerRow"></tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+            <div id="error"></div>
+        </div>
+    </div>
+
+    <script>
+        const yearSelect = document.getElementById('yearSelect');
+        const dataTable = document.getElementById('dataTable');
+        const headerRow = document.getElementById('headerRow');
+        const tableBody = document.getElementById('tableBody');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const recordCount = document.getElementById('recordCount');
+
+        // Filter and sort elements
+        const criteriaFilter = document.getElementById('criteriaFilter');
+        const ctcSlider = document.getElementById('ctcSlider');
+        const ctcMin = document.getElementById('ctcMin');
+        const ctcMax = document.getElementById('ctcMax');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const companyFilter = document.getElementById('companyFilter');
+        const roleFilter = document.getElementById('roleFilter');
+        const sortBy = document.getElementById('sortBy');
+        const applyBtn = document.getElementById('applyBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const resultsInfo = document.getElementById('resultsInfo');
+
+        let allData = []; // Store all data for filtering
+        let currentYear = '2026';
+
+        // Update CTC display
+        ctcSlider.addEventListener('input', (e) => {
+            ctcMax.textContent = e.target.value;
+        });
+
+        // Extract numeric value from CTC string
+        function extractCTC(ctcStr) {
+            if (!ctcStr) return 0;
+            const match = ctcStr.match(/(\d+(?:\.\d+)?)/);
+            return match ? parseFloat(match[0]) : 0;
+        }
+
+        // Extract numeric value from eligibility percentage
+        function extractPercentage(percStr) {
+            if (!percStr) return 0;
+            const match = percStr.match(/(\d+(?:\.\d+)?)/);
+            return match ? parseFloat(match[0]) : 0;
+        }
+
+        // Populate filter dropdowns
+        function populateFilterDropdowns(data) {
+            const categories = new Set();
+            const companies = new Set();
+            const roles = new Set();
+
+            data.forEach(row => {
+                if (row['Category']) categories.add(row['Category']);
+                if (row['Company Name']) companies.add(row['Company Name']);
+                if (row['Role']) roles.add(row['Role']);
+            });
+
+            // Sort and populate categories
+            const sortedCategories = Array.from(categories).sort();
+            sortedCategories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categoryFilter.appendChild(option);
+            });
+
+            // Sort and populate companies
+            const sortedCompanies = Array.from(companies).sort();
+            sortedCompanies.forEach(comp => {
+                const option = document.createElement('option');
+                option.value = comp;
+                option.textContent = comp;
+                companyFilter.appendChild(option);
+            });
+
+            // Sort and populate roles
+            const sortedRoles = Array.from(roles).sort();
+            sortedRoles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                roleFilter.appendChild(option);
+            });
+        }
+
+        // Apply filters and sort
+        function applyFiltersAndSort() {
+            let filtered = allData.slice(); // Copy all data
+
+            // Filter by eligibility percentage
+            const minCriteria = criteriaFilter.value ? parseFloat(criteriaFilter.value) : 0;
+            if (minCriteria > 0) {
+                filtered = filtered.filter(row => {
+                    const perc = extractPercentage(row['Eligibility Percentage']);
+                    return perc >= minCriteria;
+                });
+            }
+
+            // Filter by CTC range
+            const maxCtc = parseFloat(ctcSlider.value);
+            filtered = filtered.filter(row => {
+                const ctc = extractCTC(row['CTC']);
+                return ctc <= maxCtc;
+            });
+
+            // Filter by category
+            if (categoryFilter.value) {
+                filtered = filtered.filter(row => row['Category'] === categoryFilter.value);
+            }
+
+            // Filter by company
+            if (companyFilter.value) {
+                filtered = filtered.filter(row => row['Company Name'] === companyFilter.value);
+            }
+
+            // Filter by role
+            if (roleFilter.value) {
+                filtered = filtered.filter(row => row['Role'] === roleFilter.value);
+            }
+
+            // Sort
+            if (sortBy.value === 'ctc-high') {
+                filtered.sort((a, b) => extractCTC(b['CTC']) - extractCTC(a['CTC']));
+            } else if (sortBy.value === 'ctc-low') {
+                filtered.sort((a, b) => extractCTC(a['CTC']) - extractCTC(b['CTC']));
+            } else if (sortBy.value === 'placed-high') {
+                filtered.sort((a, b) => 
+                    (parseInt(b['Student Selected']) || 0) - (parseInt(a['Student Selected']) || 0)
+                );
+            } else if (sortBy.value === 'placed-low') {
+                filtered.sort((a, b) => 
+                    (parseInt(a['Student Selected']) || 0) - (parseInt(b['Student Selected']) || 0)
+                );
+            }
+
+            // Display filtered data
+            displayTable(filtered);
+
+            // Update results info
+            resultsInfo.innerHTML = `Showing <strong>${filtered.length}</strong> out of <strong>${allData.length}</strong> records`;
+        }
+
+        // Display table with given data
+        function displayTable(data) {
+            // Clear and display table
+            tableBody.innerHTML = '';
+
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 20px; color: #7f8c8d;">No results found</td></tr>';
+                dataTable.style.display = 'table';
+                return;
+            }
+
+            const headers = Object.keys(allData[0]);
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = row[header] || '-';
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+
+            dataTable.style.display = 'table';
+        }
+
+        // Load CSV and display data
+        async function loadData(year) {
+            loading.style.display = 'block';
+            dataTable.style.display = 'none';
+            error.innerHTML = '';
+            recordCount.innerHTML = '';
+            resultsInfo.innerHTML = '';
+            currentYear = year;
+
+            // Clear previous filters
+            criteriaFilter.value = '';
+            ctcSlider.value = '100';
+            ctcMax.textContent = '100';
+            categoryFilter.innerHTML = '<option value="">All Categories</option>';
+            companyFilter.innerHTML = '<option value="">All Companies</option>';
+            roleFilter.innerHTML = '<option value="">All Roles</option>';
+            sortBy.value = '';
+
+            try {
+                const response = await fetch(`${year}.csv`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${year}.csv`);
+                }
+
+                const csvText = await response.text();
+                const results = Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    dynamicTyping: false
+                });
+
+                allData = results.data;
+
+                if (allData.length === 0) {
+                    throw new Error('No data found in CSV');
+                }
+
+                // Display headers
+                headerRow.innerHTML = '';
+                const headers = Object.keys(allData[0]);
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+
+                // Populate filter dropdowns
+                populateFilterDropdowns(allData);
+
+                // Display all data initially
+                displayTable(allData);
+
+                // Update statistics
+                updateStats(allData);
+
+                // Show table
+                loading.style.display = 'none';
+                recordCount.innerHTML = `Loaded ${allData.length} records from ${year}`;
+                resultsInfo.innerHTML = `Showing <strong>${allData.length}</strong> records`;
+
+            } catch (err) {
+                loading.style.display = 'none';
+                error.innerHTML = `<strong>Error:</strong> ${err.message}`;
+                console.error(err);
+            }
+        }
+
+        function updateStats(data) {
+            const totalCompanies = data.length;
+            
+            let totalApplied = 0;
+            let totalSelected = 0;
+
+            data.forEach(row => {
+                const applied = parseInt(row['Student Applied']) || 0;
+                const selected = parseInt(row['Student Selected']) || 0;
+                totalApplied += applied;
+                totalSelected += selected;
+            });
+
+            const selectionRate = totalApplied > 0 
+                ? ((totalSelected / totalApplied) * 100).toFixed(2) 
+                : 0;
+
+            document.getElementById('totalCompanies').textContent = totalCompanies;
+            document.getElementById('totalApplied').textContent = totalApplied.toLocaleString();
+            document.getElementById('totalSelected').textContent = totalSelected.toLocaleString();
+            document.getElementById('selectionRate').textContent = selectionRate + '%';
+        }
+
+        // Event listeners
+        yearSelect.addEventListener('change', (e) => {
+            loadData(e.target.value);
+        });
+
+        applyBtn.addEventListener('click', applyFiltersAndSort);
+
+        resetBtn.addEventListener('click', () => {
+            criteriaFilter.value = '';
+            ctcSlider.value = '100';
+            ctcMax.textContent = '100';
+            categoryFilter.value = '';
+            companyFilter.value = '';
+            roleFilter.value = '';
+            sortBy.value = '';
+            displayTable(allData);
+            resultsInfo.innerHTML = `Showing <strong>${allData.length}</strong> records`;
+        });
+
+        // Load initial data
+        loadData('2026');
+    </script>
+</body>
+</html>
