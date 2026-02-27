@@ -55,15 +55,22 @@
 
                 <div class="filter-item">
                     <label>CTC Range (LPA):</label>
-                    <div class="dual-range-slider">
-                        <div class="range-track"></div>
-                        <div class="range-fill" id="rangeFill"></div>
-                        <input type="range" id="ctcSliderMin" min="0" max="100" value="0">
-                        <input type="range" id="ctcSliderMax" min="0" max="100" value="100">
-                    </div>
-                    <div class="ctc-range-display">
-                        <span>Min: <strong id="ctcMin">0</strong> LPA</span>
-                        <span>Max: <strong id="ctcMax">100</strong> LPA</span>
+                    <div class="ctc-slider-wrapper">
+                        <div class="ctc-inputs-row">
+                            <input type="number" id="ctcMinInput" class="ctc-input" min="0" max="150" value="0" placeholder="Min">
+                            <span class="ctc-separator">-</span>
+                            <input type="number" id="ctcMaxInput" class="ctc-input" min="0" max="150" value="150" placeholder="Max">
+                        </div>
+                        <div class="ctc-slider-track">
+                            <div class="ctc-slider-background"></div>
+                            <div class="ctc-slider-fill" id="ctcFill"></div>
+                            <input type="range" id="ctcSliderMin" class="ctc-slider-thumb" min="0" max="150" value="0">
+                            <input type="range" id="ctcSliderMax" class="ctc-slider-thumb" min="0" max="150" value="150">
+                        </div>
+                        <div class="ctc-range-labels">
+                            <span>0</span>
+                            <span>150+</span>
+                        </div>
                     </div>
                 </div>
 
@@ -138,9 +145,9 @@
             criteriaFilter: document.getElementById('criteriaFilter'),
             ctcSliderMin: document.getElementById('ctcSliderMin'),
             ctcSliderMax: document.getElementById('ctcSliderMax'),
-            ctcMin: document.getElementById('ctcMin'),
-            ctcMax: document.getElementById('ctcMax'),
-            rangeFill: document.getElementById('rangeFill'),
+            ctcMinInput: document.getElementById('ctcMinInput'),
+            ctcMaxInput: document.getElementById('ctcMaxInput'),
+            ctcFill: document.getElementById('ctcFill'),
             categoryFilter: document.getElementById('categoryFilter'),
             companyFilter: document.getElementById('companyFilter'),
             roleFilter: document.getElementById('roleFilter'),
@@ -162,10 +169,10 @@
             return match ? parseFloat(match[0]) : 0;
         }
 
-        // Update CTC display with optimized DOM manipulation
+        // Update CTC slider display and fill
         function updateCtcDisplay() {
-            let minVal = parseFloat(DOM.ctcSliderMin.value);
-            let maxVal = parseFloat(DOM.ctcSliderMax.value);
+            let minVal = parseFloat(DOM.ctcSliderMin.value) || 0;
+            let maxVal = parseFloat(DOM.ctcSliderMax.value) || 0;
 
             // Swap if min > max
             if (minVal > maxVal) {
@@ -174,14 +181,24 @@
                 DOM.ctcSliderMax.value = maxVal;
             }
 
-            // Update display values
-            DOM.ctcMin.textContent = minVal;
-            DOM.ctcMax.textContent = maxVal;
+            // Update input field values
+            DOM.ctcMinInput.value = minVal;
+            DOM.ctcMaxInput.value = maxVal;
 
-            // Update range fill bar
-            const minPercent = (minVal / 100) * 100;
-            const maxPercent = (maxVal / 100) * 100;
-            DOM.rangeFill.style.cssText = `left: ${minPercent}%; right: ${100 - maxPercent}%`;
+            // Update fill bar position
+            const minPercent = (minVal / 150) * 100;
+            const maxPercent = (maxVal / 150) * 100;
+            DOM.ctcFill.style.left = minPercent + '%';
+            DOM.ctcFill.style.right = (100 - maxPercent) + '%';
+
+            // Manage z-index for overlapping thumbs
+            if (minVal > 75) {
+                DOM.ctcSliderMin.style.zIndex = '5';
+                DOM.ctcSliderMax.style.zIndex = '4';
+            } else {
+                DOM.ctcSliderMin.style.zIndex = '4';
+                DOM.ctcSliderMax.style.zIndex = '5';
+            }
         }
 
         // Populate filter dropdowns in O(n log n) with optimized Set operations
@@ -230,8 +247,8 @@
         // Optimized filtering in single pass: O(n) instead of O(n*m)
         function applyFiltersAndSort() {
             const minCriteria = parseFloat(DOM.criteriaFilter.value) || 0;
-            const minCtc = parseFloat(DOM.ctcSliderMin.value);
-            const maxCtc = parseFloat(DOM.ctcSliderMax.value);
+            const minCtc = parseFloat(DOM.ctcSliderMin.value) || 0;
+            const maxCtc = parseFloat(DOM.ctcSliderMax.value) || 150;
             const categoryValue = DOM.categoryFilter.value;
             const companyValue = DOM.companyFilter.value;
             const roleValue = DOM.roleFilter.value;
@@ -324,9 +341,6 @@
 
             // Reset filters efficiently
             DOM.criteriaFilter.value = '';
-            DOM.ctcSliderMin.value = '0';
-            DOM.ctcSliderMax.value = '100';
-            updateCtcDisplay();
             DOM.categoryFilter.options.length = 1;
             DOM.companyFilter.options.length = 1;
             DOM.roleFilter.options.length = 1;
@@ -405,12 +419,28 @@
         DOM.yearSelect.addEventListener('change', (e) => loadData(e.target.value));
         DOM.ctcSliderMin.addEventListener('input', updateCtcDisplay);
         DOM.ctcSliderMax.addEventListener('input', updateCtcDisplay);
+        
+        // Add event listeners for number inputs to sync with sliders
+        DOM.ctcMinInput.addEventListener('input', function() {
+            let val = parseFloat(this.value) || 0;
+            val = Math.max(0, Math.min(val, 150));
+            DOM.ctcSliderMin.value = val;
+            updateCtcDisplay();
+        });
+        
+        DOM.ctcMaxInput.addEventListener('input', function() {
+            let val = parseFloat(this.value) || 0;
+            val = Math.max(0, Math.min(val, 150));
+            DOM.ctcSliderMax.value = val;
+            updateCtcDisplay();
+        });
+        
         DOM.applyBtn.addEventListener('click', applyFiltersAndSort);
 
         DOM.resetBtn.addEventListener('click', () => {
             DOM.criteriaFilter.value = '';
             DOM.ctcSliderMin.value = '0';
-            DOM.ctcSliderMax.value = '100';
+            DOM.ctcSliderMax.value = '150';
             updateCtcDisplay();
             DOM.categoryFilter.value = '';
             DOM.companyFilter.value = '';
@@ -420,6 +450,9 @@
             DOM.resultsInfo.innerHTML = `Showing <strong>${allData.length}</strong> records`;
         });
 
+        // Initialize CTC slider on page load
+        updateCtcDisplay();
+        
         // Initialize application
         loadData('2026');
     </script>
